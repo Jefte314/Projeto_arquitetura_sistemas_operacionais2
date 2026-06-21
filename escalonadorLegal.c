@@ -156,41 +156,37 @@ int main(void) {
         struct Processo *p = malloc(sizeof(struct Processo));
         p->id = i + 1;
         p->tempo_chegada = tempos_iniciais[i];
-        
-        // Insere no fim da fila (Tail)
-        TAILQ_INSERT_TAIL(&pronto_queue, p, entradas);
+        TAILQ_INSERT_TAIL(&pronto_queue, p, entradas); // Inserção no fim da fila
         printf("Processo %d criado (Tempo total necessário: %d)\n", p->id, p->tempo_chegada);
     }
 
     printf("\n=== Iniciando Escalonamento Round Robin (Quantum = %d) ===\n", QUANTUM);
     int tempo_total = 0;
 
-    // 4. Loop do Escalonador (Executa enquanto a fila não estiver vazia)
+    // Loop do Escalonador que executa enquanto a fila não estiver vazia
     while (!TAILQ_EMPTY(&pronto_queue)) {
-        // Remove o primeiro processo do início da fila (Head)
+        // Remoção do primeiro processo do início da fila
         struct Processo *p_atual = TAILQ_FIRST(&pronto_queue);
         TAILQ_REMOVE(&pronto_queue, p_atual, entradas);
-
         printf("\n[Tempo: %d] Executando Processo %d (Restante: %d)\n", tempo_total, p_atual->id, p_atual->tempo_chegada);
 
-        // Define quanto tempo o processo vai rodar nesta rodada
+        // Definição de quanto tempo o processo vai rodar nesta rodada
         int tempo_execucao = (p_atual->tempo_chegada > QUANTUM) ? QUANTUM : p_atual->tempo_chegada;
 
-        // Simula o processamento
+        // Uma simulação do processamento
         p_atual->tempo_chegada -= tempo_execucao;
         tempo_total += tempo_execucao;
-
         printf("-> Processo %d rodou por %d unidades de tempo.\n", p_atual->id, tempo_execucao);
 
-        // 5. Decisão do Escalonador
+        // Decisão do Escalonador
         if (p_atual->tempo_chegada > 0) {
-            // Sofreu preempção: volta para o fim da fila de prontos
+            // Esse sofreu preempção: volta para o fim da fila de prontos
             printf("-> Processo %d NÃO terminou. Voltando para o fim da fila.\n", p_atual->id);
             TAILQ_INSERT_TAIL(&pronto_queue, p_atual, entradas);
         } else {
             // O processo terminou sua execução
             printf("-> Processo %d CONCLUÍDO.\n", p_atual->id);
-            free(p_atual); // Libera a memória do processo finalizado
+            free(p_atual); // Liberação da memória do processo finalizado
         }
     }
 

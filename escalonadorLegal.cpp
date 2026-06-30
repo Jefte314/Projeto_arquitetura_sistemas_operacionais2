@@ -133,7 +133,7 @@ using namespace std;
 
 class Processo {
     public:
-        int pid, tempo_chegada, prioridade, tempo_cpu, tempo_inicio, tempo_fim, tempo_retorno;
+        int pid, tempo_chegada, prioridade, tempo_cpu, tempo_restante, tempo_retorno;
 
         // Construtor da classe processo
         Processo(int pid, int tempo_chegada, int prioridade, int tempo_cpu) {
@@ -141,22 +141,33 @@ class Processo {
             this->tempo_chegada = tempo_chegada;
             this->prioridade = prioridade;
             this->tempo_cpu = tempo_cpu;
-            this->tempo_inicio = -1; // Inicialmente indefined
-            this->tempo_fim = 0;
+            this->tempo_restante = tempo_cpu; // Tempo restante de CPU
             this->tempo_retorno = 0; // Famoso turnaround
         }
 };
 
-void EscalonamentoRoundRobin() {
-    queue<Processo*> pronto_queue;
-    int teste_vetor[] = {40, 20, 80};
-    int num_processos = 3;
+void EscalonamentoRoundRobin(int num_procs, int quantum, int time_troca) {
+    queue<Processo*> fila_procs;
+    num_procs = 5, quantum = 20, time_troca = 1;
+    int teste_vetor[] = {50, 15, 10, 100, 60};
+
+    cout << "=== Inicializando Processos ===\n";
+    for (int i = 0; i < num_procs; i++) {
+        Processo *p = new Processo(i + 1, i, 0, teste_vetor[i]);
+        fila_procs.push(p);
+    }
 }
 
-void EscalonamentoPorPrioridade() {
+void EscalonamentoPorPrioridade(int num_procs, int time_troca) {
     queue<Processo*> pronto_queue;
-    int teste_vetor[] = {40, 20, 80};
-    int num_processos = 3;
+    num_procs = 5;
+    int teste_vetor[] = {1, 0, 2, 0, 3};
+
+    cout << "=== Inicializando Processos ===\n";
+    for (int i = 0; i < num_procs; i++) {
+        Processo *p = new Processo(i + 1, i, teste_vetor[i], 0);
+        pronto_queue.push(p);
+    }
 }
 
 int main() {

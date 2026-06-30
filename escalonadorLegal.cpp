@@ -128,7 +128,6 @@ Ocupação de CPU: xyz ...
 #include <iostream>
 #include <queue>
 #include <vector>
-#define QUANTUM 60 // Tempo de fatia de CPU para o Round Robin em milissegundos
 using namespace std;
 
 class Processo {
@@ -146,79 +145,110 @@ class Processo {
         }
 };
 
+struct ComparaPrioridade { // Uma struct para comparar a prioridade do menor para o maior
+    bool operator()(const Processo* a, const Processo* b) {
+        return a->prioridade > b->prioridade;
+    }
+};
+
 void EscalonamentoRoundRobin(int num_procs, int quantum, int time_troca) {
     queue<Processo*> fila_procs;
     num_procs = 5, quantum = 20, time_troca = 1;
-    int teste_vetor[] = {50, 15, 10, 100, 60};
+    int teste_vetor[] = {50, 15, 10, 100, 60}, tempo_total = 0, tempo_exec = 0, soma = 0, i;
+    float media_retorno;
 
     cout << "=== Inicializando Processos ===\n";
-    for (int i = 0; i < num_procs; i++) {
+    for (i = 0; i < num_procs; i++) {
         Processo *p = new Processo(i + 1, i, 0, teste_vetor[i]);
         fila_procs.push(p);
     }
-}
 
-void EscalonamentoPorPrioridade(int num_procs, int time_troca) {
-    queue<Processo*> pronto_queue;
-    num_procs = 5;
-    int teste_vetor[] = {1, 0, 2, 0, 3};
-
-    cout << "=== Inicializando Processos ===\n";
-    for (int i = 0; i < num_procs; i++) {
-        Processo *p = new Processo(i + 1, i, teste_vetor[i], 0);
-        pronto_queue.push(p);
-    }
-}
-
-int main() {
-    // Criação da fila utilizando a STL do C++
-    queue<Processo*> pronto_queue;
-
-    // Criação e inserção de processos na fila para o teste
-    int tempos_iniciais[] = {40, 20, 80};
-    int num_processos = sizeof(tempos_iniciais) / sizeof(tempos_iniciais[0]);
-
-    cout << "=== Inicializando Processos ===\n";
-    for (int i = 0; i < num_processos; i++) {
-        Processo *p = new Processo(i + 1, tempos_iniciais[i], 0, 0);
-
-        // Inserção no fim da fila
-        pronto_queue.push(p);
-        cout << "Processo " << p->pid << " criado (Tempo total necessário: " << p->tempo_chegada << ")\n";
-    }
-
-    cout << "\n=== Iniciando Escalonamento Round Robin (Quantum = " << QUANTUM << ") ===\n";
-    int tempo_total = 0;
-
-    // Loop executa enquanto a fila não estiver vazia
-    while (!pronto_queue.empty()) {
+    cout << "\n=== Iniciando Escalonamento Round Robin ===\n";
+    while (!fila_procs.empty()) { // Executa enquanto a fila não estiver vazia
         // Pega-se o primeiro item e depois remove-o da fila
-        Processo *p_atual = pronto_queue.front();
-        pronto_queue.pop();
+        Processo *proc_atual = fila_procs.front();
+        fila_procs.pop();
 
-        cout << "\n[Tempo: " << tempo_total << "] Executando Processo " << p_atual->pid
-                  << " (Restante: " << p_atual->tempo_chegada << ")\n";
+        cout << "\n[Tempo: " << tempo_total << "] Executando Processo " << proc_atual->pid
+                  << " (Restante: " << proc_atual->tempo_restante << ")\n";
 
-        // Definição de quanto tempo o processo vai rodar nesta rodada
-        int tempo_execucao = (p_atual->tempo_chegada > QUANTUM) ? QUANTUM : p_atual->tempo_chegada;
+        // Definição do tempo a ser executado
+        if (proc_atual->tempo_cpu > quantum) tempo_exec = quantum;
+        else tempo_exec = proc_atual->tempo_cpu;
+        proc_atual->tempo_restante -= tempo_exec;
+        tempo_total += tempo_exec;
 
-        // Uma simulação do processamento
-        p_atual->tempo_chegada -= tempo_execucao;
-        tempo_total += tempo_execucao;
-        cout << "-> Processo " << p_atual->pid << " rodou por " << tempo_execucao << " unidades de tempo.\n";
-
-        // Decisão do Escalonador
-        if (p_atual->tempo_chegada > 0) {
-            // Esse sofreu preempção: volta para o fim da fila de prontos
-            cout << "-> Processo " << p_atual->pid << " NÃO terminou. Voltando para o fim da fila.\n";
-            pronto_queue.push(p_atual);
-        } else {
-            // O processo terminou sua execução
-            cout << "-> Processo " << p_atual->pid << " CONCLUÍDO.\n";
-            delete p_atual; // Liberação de memória padrão C++
+        // A decisão do escalonador
+        if (proc_atual->tempo_restante > 0) {
+            cout << "-> Processo " << proc_atual->pid << " NÃO terminou. Voltando para o fim da fila.\n";
+            fila_procs.push(proc_atual);
+        }
+        else {
+            cout << "-> Processo " << proc_atual->pid << " CONCLUÍDO.\n";
+            proc_atual->tempo_retorno = tempo_total + time_troca;
+            delete proc_atual;
         }
     }
 
-    cout << "\n=== Escalonamento concluído com sucesso em " << tempo_total << " unidades de tempo! ===\n";
+    // A média dos tempos de retorno dos procesos
+    while (!fila_procs.empty()) {
+        Processo *proc_atual = fila_procs.front();
+        fila_procs.pop();
+        soma += proc_atual->tempo_retorno;
+        delete proc_atual;
+    }
+    media_retorno = soma / num_procs;
+    cout << "\n=== Escalonamento concluído com sucesso em " << tempo_total << "ms e com a média do tempo de execução " << media_retorno << "ms! ===\n";
+}
+
+void EscalonamentoPorPrioridade(int num_procs, int time_troca) {
+    priority_queue<Processo*, vector<Processo*>, ComparaPrioridade> fila_procs;
+    num_procs = 5, time_troca = 1;
+    int teste_vetor[] = {1, 0, 2, 0, 3}, tempo_total = 0, tempo_exec = 0, soma = 0, i;
+    float media_retorno;
+
+    cout << "=== Inicializando Processos ===\n";
+    for (i = 0; i < num_procs; i++) {
+        Processo *p = new Processo(i + 1, i, teste_vetor[i], 0);
+        fila_procs.push(p);
+    }
+
+    cout << "\n=== Iniciando Escalonamento Por Prioridades ===\n";
+    while (!fila_procs.empty()) { // Executa enquanto a fila de prioridades não estiver vazia
+        // Pega-se o primeiro item e depois remove-o da fila de prioridades
+        Processo *proc_atual = fila_procs.top();
+        fila_procs.pop();
+
+        cout << "\n[Prioridade: " << proc_atual->prioridade << "] Executando Processo " << proc_atual->pid
+                << " (Restante: " << proc_atual->tempo_restante << ")\n";
+
+        // Alguma coisa
+        tempo_exec = proc_atual->tempo_cpu;
+        proc_atual->tempo_restante -= tempo_exec;
+        tempo_total += tempo_exec;
+
+        // A decisão do escalonador
+        proc_atual->tempo_retorno = tempo_total + time_troca;
+        delete proc_atual;
+    }
+
+    // A média dos tempos de retorno dos procesos
+    while (!fila_procs.empty()) {
+        Processo *proc_atual = fila_procs.top();
+        fila_procs.pop();
+        soma += proc_atual->tempo_retorno;
+        delete proc_atual;
+    }
+    media_retorno = soma / num_procs;
+    cout << "\n=== Escalonamento concluído com sucesso em " << tempo_total << "ms e com a média do tempo de execução " << media_retorno << "ms! ===\n";
+}
+
+int main() {
+    // Teste primário da lógica dos algoritmos
+    queue<Processo*> fila1;
+    priority_queue<Processo*, vector<Processo*>, ComparaPrioridade> fila2;
+    EscalonamentoRoundRobin(5, 20, 1);
+    cout << "\n";
+    EscalonamentoPorPrioridade(5, 1);
     return 0;
 }

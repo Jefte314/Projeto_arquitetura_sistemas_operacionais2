@@ -5,7 +5,7 @@ Outro pequeno projeto da disciplina de arquitetura e organização de computador
 Para rodar no terminal, já estando dentro da pasta, execute os seguintes comandos no terminal:
 
 
-gcc -o escalonadorLegal escalonadorLegal.c /ou/ g++ -o escalonadorLegal escalonadorLegal.cpp 
+g++ -o escalonadorLegal escalonadorLegal.cpp 
 
 
 ./escalonadorLegal

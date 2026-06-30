@@ -131,13 +131,33 @@ Ocupação de CPU: xyz ...
 #define QUANTUM 60 // Tempo de fatia de CPU para o Round Robin em milissegundos
 using namespace std;
 
-// Estrutura limpa, sem macros de ponteiros internos
-typedef struct {
-    int id;
-    int tempo_chegada;
-    int prioridade;
-    int tempo_cpu;
-} Processo;
+class Processo {
+    public:
+        int pid, tempo_chegada, prioridade, tempo_cpu, tempo_inicio, tempo_fim, tempo_retorno;
+
+        // Construtor da classe processo
+        Processo(int pid, int tempo_chegada, int prioridade, int tempo_cpu) {
+            this->pid = pid;
+            this->tempo_chegada = tempo_chegada;
+            this->prioridade = prioridade;
+            this->tempo_cpu = tempo_cpu;
+            this->tempo_inicio = -1; // Inicialmente indefined
+            this->tempo_fim = 0;
+            this->tempo_retorno = 0; // Famoso turnaround
+        }
+};
+
+void EscalonamentoRoundRobin() {
+    queue<Processo*> pronto_queue;
+    int teste_vetor[] = {40, 20, 80};
+    int num_processos = 3;
+}
+
+void EscalonamentoPorPrioridade() {
+    queue<Processo*> pronto_queue;
+    int teste_vetor[] = {40, 20, 80};
+    int num_processos = 3;
+}
 
 int main() {
     // Criação da fila utilizando a STL do C++
@@ -149,16 +169,11 @@ int main() {
 
     cout << "=== Inicializando Processos ===\n";
     for (int i = 0; i < num_processos; i++) {
-        // Alocação dinâmica padrão C++
-        Processo *p = new Processo();
-        p->id = i + 1;
-        p->tempo_chegada = tempos_iniciais[i];
-        p->prioridade = 0; // Inicializando campos extras
-        p->tempo_cpu = 0;
+        Processo *p = new Processo(i + 1, tempos_iniciais[i], 0, 0);
 
         // Inserção no fim da fila
         pronto_queue.push(p);
-        cout << "Processo " << p->id << " criado (Tempo total necessário: " << p->tempo_chegada << ")\n";
+        cout << "Processo " << p->pid << " criado (Tempo total necessário: " << p->tempo_chegada << ")\n";
     }
 
     cout << "\n=== Iniciando Escalonamento Round Robin (Quantum = " << QUANTUM << ") ===\n";
@@ -170,7 +185,7 @@ int main() {
         Processo *p_atual = pronto_queue.front();
         pronto_queue.pop();
 
-        cout << "\n[Tempo: " << tempo_total << "] Executando Processo " << p_atual->id
+        cout << "\n[Tempo: " << tempo_total << "] Executando Processo " << p_atual->pid
                   << " (Restante: " << p_atual->tempo_chegada << ")\n";
 
         // Definição de quanto tempo o processo vai rodar nesta rodada
@@ -179,16 +194,16 @@ int main() {
         // Uma simulação do processamento
         p_atual->tempo_chegada -= tempo_execucao;
         tempo_total += tempo_execucao;
-        cout << "-> Processo " << p_atual->id << " rodou por " << tempo_execucao << " unidades de tempo.\n";
+        cout << "-> Processo " << p_atual->pid << " rodou por " << tempo_execucao << " unidades de tempo.\n";
 
         // Decisão do Escalonador
         if (p_atual->tempo_chegada > 0) {
             // Esse sofreu preempção: volta para o fim da fila de prontos
-            cout << "-> Processo " << p_atual->id << " NÃO terminou. Voltando para o fim da fila.\n";
+            cout << "-> Processo " << p_atual->pid << " NÃO terminou. Voltando para o fim da fila.\n";
             pronto_queue.push(p_atual);
         } else {
             // O processo terminou sua execução
-            cout << "-> Processo " << p_atual->id << " CONCLUÍDO.\n";
+            cout << "-> Processo " << p_atual->pid << " CONCLUÍDO.\n";
             delete p_atual; // Liberação de memória padrão C++
         }
     }

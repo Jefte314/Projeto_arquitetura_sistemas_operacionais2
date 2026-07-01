@@ -1,0 +1,81 @@
+=== Inicializando Processos ===
+=============================
+ESCALONAMENTO ROUND ROBIN
+=============================
+
+Quantidade de processos: 5
+Quantum: 20
+Tempo de troca de contexto: 1 ms
+
+[Tempo 0] -> Processo 1 executando...
+-> Processo 1 NÃO terminou. Voltando para o fim da fila.
+[Tempo 21] -> Processo 2 executando...
+-> Processo 2 CONCLUÍDO.
+Processo 2 | Chegada: 1 | CPU: 15 | Retorno: 35 ms
+[Tempo 37] -> Processo 3 executando...
+-> Processo 3 CONCLUÍDO.
+Processo 3 | Chegada: 3 | CPU: 10 | Retorno: 44 ms
+[Tempo 48] -> Processo 4 executando...
+-> Processo 4 NÃO terminou. Voltando para o fim da fila.
+[Tempo 69] -> Processo 5 executando...
+-> Processo 5 NÃO terminou. Voltando para o fim da fila.
+[Tempo 90] -> Processo 1 executando...
+-> Processo 1 NÃO terminou. Voltando para o fim da fila.
+[Tempo 111] -> Processo 4 executando...
+-> Processo 4 NÃO terminou. Voltando para o fim da fila.
+[Tempo 132] -> Processo 5 executando...
+-> Processo 5 NÃO terminou. Voltando para o fim da fila.
+[Tempo 153] -> Processo 1 executando...
+-> Processo 1 CONCLUÍDO.
+Processo 1 | Chegada: 0 | CPU: 50 | Retorno: 163 ms
+[Tempo 164] -> Processo 4 executando...
+-> Processo 4 NÃO terminou. Voltando para o fim da fila.
+[Tempo 185] -> Processo 5 executando...
+-> Processo 5 CONCLUÍDO.
+Processo 5 | Chegada: 6 | CPU: 60 | Retorno: 199 ms
+[Tempo 206] -> Processo 4 executando...
+-> Processo 4 NÃO terminou. Voltando para o fim da fila.
+[Tempo 227] -> Processo 4 executando...
+-> Processo 4 CONCLUÍDO.
+Processo 4 | Chegada: 5 | CPU: 100 | Retorno: 242 ms
+
+Tempo total: 247 ms
+Tempo medio de retorno: 136.6 ms
+Número de trocas de contexto: 12
+Overhead de chaveamento: 4.8583%
+
+=== Escalonamento concluído com sucesso em 247ms e com a média do tempo de retorno 136.6ms! ===
+
+
+=========================================
+
+=== Inicializando Processos ===
+=============================
+ESCALONAMENTO POR PRIORIDADE
+=============================
+
+Quantidade de processos: 5
+Tempo de troca de contexto: 1 ms
+
+[Prioridade 0] -> Processo 2 executando...
+-> Processo 2 CONCLUÍDO.
+Processo 2 | Chegada: 1 | CPU: 15 | Retorno: 14 ms
+[Prioridade 0] -> Processo 4 executando...
+-> Processo 4 CONCLUÍDO.
+Processo 4 | Chegada: 5 | CPU: 100 | Retorno: 111 ms
+[Prioridade 1] -> Processo 1 executando...
+-> Processo 1 CONCLUÍDO.
+Processo 1 | Chegada: 0 | CPU: 50 | Retorno: 167 ms
+[Prioridade 2] -> Processo 3 executando...
+-> Processo 3 CONCLUÍDO.
+Processo 3 | Chegada: 3 | CPU: 10 | Retorno: 175 ms
+[Prioridade 3] -> Processo 5 executando...
+-> Processo 5 CONCLUÍDO.
+Processo 5 | Chegada: 6 | CPU: 60 | Retorno: 233 ms
+
+Tempo total: 239 ms
+Tempo medio de retorno: 140 ms
+Número de trocas de contexto: 4
+Overhead de chaveamento: 1.67364%
+
+=== Escalonamento concluído com sucesso em 239ms e com a média do tempo de retorno 140ms! ===

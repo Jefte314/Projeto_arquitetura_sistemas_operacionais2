@@ -12,3 +12,10 @@ g++ -o escalonadorLegal escalonadorLegal.cpp
 
 
 Pronto: Aproveita o resultado
+
+
+Integrantes:
+
+Jefté Erisvaldo Medeiros de Souza (jems) / 
+Vinícius Santos Lourenço (vsl) / 
+Williams Andrade de Souza Filho (wasf)

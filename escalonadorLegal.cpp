@@ -1,7 +1,15 @@
 #include <iostream>
+#include <fstream>
+#include <string>
 #include <queue>
 #include <vector>
 using namespace std;
+
+struct Config_geral { // Guarda as informações em um arquivo
+    int num_procs;
+    int quantum;
+    int tempo_troca;
+};
 
 class Processo {
     public:
@@ -18,6 +26,38 @@ class Processo {
         }
 };
 
+// Lê o arquivo de entrada e retorna um vetor de ponteiros para os processos
+vector<Processo*> LerArquivo(string nomeArquivo, Config_geral &config){
+    ifstream arquivo(nomeArquivo);
+    vector<Processo*> processos;
+    char lixo;
+    int i;
+
+    // Verifica se o arquivo foi aberto corretamente
+    if (!arquivo.is_open()){
+        cout << "Erro ao abrir o arquivo!\n";
+        exit(1);
+    }
+
+    arquivo >> config.num_procs >> lixo >> config.quantum >> lixo >> config.tempo_troca;
+    for (int i=0;i<config.num_procs;i++) {
+        int id, chegada, prioridade, cpu;
+        if (!(arquivo >> id >> lixo >> chegada >> lixo >> prioridade >> lixo >> cpu)) {
+            cout << "Erro no formato do arquivo!\n";
+            exit(1);
+        }
+        processos.push_back(new Processo(id, chegada, prioridade, cpu));
+    }
+
+    arquivo.close();
+    return processos;
+}
+
+// Escreve as informações do processo no arquivo de saída
+void EscreverArquivo(ofstream &saida, Processo *p){
+    saida << "Processo " << p->pid << " | Chegada: " << p->tempo_chegada << " | CPU: " << p->tempo_cpu << " | Retorno: " << p->tempo_retorno << " ms\n";
+}
+
 struct ComparaPrioridade { // Uma struct para comparar a prioridade do menor para o maior
     bool operator()(const Processo* a, const Processo* b) {
         // Quando duas prioridades são iguais
@@ -27,25 +67,32 @@ struct ComparaPrioridade { // Uma struct para comparar a prioridade do menor par
     }
 };
 
-void EscalonamentoRoundRobin(int num_procs, int quantum, int time_troca) {
-    queue<Processo*> fila_procs;
-    int teste_vetor[] = {50, 15, 10, 100, 60}, tempo_total = 0, tempo_exec = 0, soma = 0, i;
-    float media_retorno;
-
-    cout << "=== Inicializando Processos ===\n";
-    for (i = 0; i < num_procs; i++) {
-        Processo *p = new Processo(i + 1, i, 0, teste_vetor[i]);
-        fila_procs.push(p);
+void EscalonamentoRoundRobin(vector<Processo*> &processos, int quantum, int time_troca, ofstream &saida) {
+    // Verifica se o arquivo foi aberto corretamente
+    if(!saida.is_open()){
+        cout << "Erro ao abrir o arquivo!\n";
+        exit(1);
     }
 
-    cout << "\n=== Iniciando Escalonamento Round Robin ===\n";
+    queue<Processo*> fila_procs;
+    int tempo_total = 0, tempo_exec = 0, num_chav = 0, soma = 0;
+    float media_retorno, overhead;
+
+    saida << "=== Inicializando Processos ===\n";
+    for(Processo *p : processos) fila_procs.push(p);
+
+    saida << "=============================\n";
+    saida << "ESCALONAMENTO ROUND ROBIN\n";
+    saida << "=============================\n\n";
+    saida << "Quantidade de processos: " << processos.size() << '\n';
+    saida << "Quantum: " << quantum << '\n';
+    saida << "Tempo de troca de contexto: " << time_troca << " ms\n\n";
+
     while (!fila_procs.empty()) { // Executa enquanto a fila não estiver vazia
         // Pega-se o primeiro item e depois remove-o da fila
         Processo *proc_atual = fila_procs.front();
         fila_procs.pop();
-
-        cout << "\n[Tempo: " << tempo_total << "] Executando Processo " << proc_atual->pid
-                  << " (Restante: " << proc_atual->tempo_restante << ")\n";
+        saida << "[Tempo " << tempo_total << "] -> Processo " << proc_atual->pid << " executando...\n";
 
         // Definição do tempo a ser executado
         if (proc_atual->tempo_restante > quantum) tempo_exec = quantum;
@@ -55,68 +102,108 @@ void EscalonamentoRoundRobin(int num_procs, int quantum, int time_troca) {
 
         // A decisão do escalonador
         if (proc_atual->tempo_restante > 0) {
-            cout << "-> Processo " << proc_atual->pid << " NÃO terminou. Voltando para o fim da fila.\n";
+            saida << "-> Processo " << proc_atual->pid << " NÃO terminou. Voltando para o fim da fila.\n";
             tempo_total += time_troca;
+            num_chav++;
             fila_procs.push(proc_atual);
         }
         else {
-            cout << "-> Processo " << proc_atual->pid << " CONCLUÍDO.\n";
+            saida << "-> Processo " << proc_atual->pid << " CONCLUÍDO.\n";
             proc_atual->tempo_retorno = tempo_total - proc_atual->tempo_chegada;
             soma += proc_atual->tempo_retorno;
-            tempo_total += time_troca;
+            if (!fila_procs.empty()) {
+                tempo_total += time_troca; // Adiciona tempo da troca de contexto
+                num_chav++;
+            }
+            EscreverArquivo(saida, proc_atual);
             delete proc_atual;
         }
     }
 
     // A média dos tempos de retorno dos procesos
-    media_retorno = (float) soma / num_procs;
-    cout << "\n=== Escalonamento concluído com sucesso em " << tempo_total << "ms e com a média do tempo de retorno " << media_retorno << "ms! ===\n";
+    media_retorno = (float) soma / processos.size();
+    processos.clear(); // Limpa o vetor de processos
+    overhead = (float) (num_chav * time_troca) / tempo_total;
+    saida << "\nTempo total: " << tempo_total << " ms\n";
+    saida << "Tempo medio de retorno: " << media_retorno << " ms\n";
+    saida << "Número de trocas de contexto: " << num_chav << "\n";
+    saida << "Overhead de chaveamento: " << overhead * 100 << "%\n";
+    saida << "\n=== Escalonamento concluído com sucesso em " << tempo_total << "ms e com a média do tempo de retorno " << media_retorno << "ms! ===\n";
 }
 
-void EscalonamentoPorPrioridade(int num_procs, int time_troca) {
-    priority_queue<Processo*, vector<Processo*>, ComparaPrioridade> fila_procs;
-    int teste_vetor_prioridade[] = {1, 0, 2, 0, 3}, teste_vetor_tempoCPU[] = {50, 15, 10, 100, 60}, tempo_total = 0, tempo_exec = 0, soma = 0, i;
-    float media_retorno;
-
-    cout << "=== Inicializando Processos ===\n";
-    for (i = 0; i < num_procs; i++) {
-        Processo *p = new Processo(i + 1, i, teste_vetor_prioridade[i], teste_vetor_tempoCPU[i]);
-        fila_procs.push(p);
+void EscalonamentoPorPrioridade(vector<Processo*> &processos, int time_troca, ofstream &saida) {
+    // Verifica se o arquivo foi aberto corretamente
+    if(!saida.is_open()){
+        cout << "Erro ao abrir o arquivo!\n";
+        exit(1);
     }
 
-    cout << "\n=== Iniciando Escalonamento Por Prioridades ===\n";
+    priority_queue<Processo*, vector<Processo*>, ComparaPrioridade> fila_procs;
+    int tempo_total = 0, tempo_exec = 0, num_chav = 0, soma = 0;
+    float media_retorno, overhead;
+
+    saida << "=== Inicializando Processos ===\n";
+    for(Processo *p : processos) fila_procs.push(p);
+
+    saida << "=============================\n";
+    saida << "ESCALONAMENTO POR PRIORIDADE\n";
+    saida << "=============================\n\n";
+    saida << "Quantidade de processos: " << processos.size() << '\n';
+    saida << "Tempo de troca de contexto: " << time_troca << " ms\n\n";
+
     while (!fila_procs.empty()) { // Executa enquanto a fila de prioridades não estiver vazia
         // Pega-se o primeiro item e depois remove-o da fila de prioridades
         Processo *proc_atual = fila_procs.top();
         fila_procs.pop();
+        saida << "[Prioridade " << proc_atual->prioridade << "] -> Processo " << proc_atual->pid << " executando...\n";
 
-        cout << "\n[Prioridade: " << proc_atual->prioridade << "] Executando Processo " << proc_atual->pid
-                << " (Restante: " << proc_atual->tempo_restante << ")\n";
-
-        // Alguma coisa
-        tempo_exec = proc_atual->tempo_restante;
-        proc_atual->tempo_restante -= tempo_exec;
-        tempo_total += tempo_exec;
+        // Definição do tempo a ser executado
+        if (proc_atual->tempo_restante > 0) {
+            tempo_exec = proc_atual->tempo_restante;
+            proc_atual->tempo_restante = 0;
+            tempo_total += tempo_exec;
+        }
 
         // A decisão do escalonador
-        cout << "-> Processo " << proc_atual->pid << " CONCLUÍDO.\n";
-        proc_atual->tempo_retorno = tempo_total + time_troca - proc_atual->tempo_chegada;
+        saida << "-> Processo " << proc_atual->pid << " CONCLUÍDO.\n";
+        proc_atual->tempo_retorno = tempo_total - proc_atual->tempo_chegada;
         soma += proc_atual->tempo_retorno;
-        tempo_total += time_troca;
+        if (!fila_procs.empty()) {
+            tempo_total += time_troca; // Adiciona tempo da troca de contexto
+            num_chav++;
+        }
+
+        EscreverArquivo(saida, proc_atual);
         delete proc_atual;
     }
 
     // A média dos tempos de retorno dos procesos
-    media_retorno = (float) soma / num_procs;
-    cout << "\n=== Escalonamento concluído com sucesso em " << tempo_total << "ms e com a média do tempo de retorno " << media_retorno << "ms! ===\n";
+    media_retorno = (float) soma / processos.size();
+    processos.clear(); // Limpa o vetor de processos
+    overhead = (float) (num_chav * time_troca) / tempo_total;
+    saida << "\nTempo total: " << tempo_total << " ms\n";
+    saida << "Tempo medio de retorno: " << media_retorno << " ms\n";
+    saida << "Número de trocas de contexto: " << num_chav << "\n";
+    saida << "Overhead de chaveamento: " << overhead * 100 << "%\n";
+    saida << "\n=== Escalonamento concluído com sucesso em " << tempo_total << "ms e com a média do tempo de retorno " << media_retorno << "ms! ===\n";
 }
 
-int main() {
-    // Teste primário da lógica dos algoritmos
-    queue<Processo*> fila1;
-    priority_queue<Processo*, vector<Processo*>, ComparaPrioridade> fila2;
-    EscalonamentoRoundRobin(5, 20, 1);
-    cout << "\n";
-    EscalonamentoPorPrioridade(5, 1);
+int main(void) {
+    Config_geral config;
+    ofstream saida("saida.txt");
+
+    // Verifica se o arquivo de saída foi aberto corretamente
+    if (!saida.is_open()) {
+        cout << "Erro ao criar arquivo de saída!\n";
+        return 1;
+    }
+
+    vector<Processo*> processosRR = LerArquivo("entrada.txt", config);
+    EscalonamentoRoundRobin(processosRR, config.quantum, config.tempo_troca, saida);
+    saida << "\n\n=========================================\n\n";
+
+    vector<Processo*> processosPrioridade = LerArquivo("entrada.txt", config);
+    EscalonamentoPorPrioridade(processosPrioridade, config.tempo_troca, saida);
+    saida.close();
     return 0;
 }
